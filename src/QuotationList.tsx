@@ -1,20 +1,60 @@
 import React from 'react';
-import { Plus, FileText, Pencil, Trash2 } from 'lucide-react';
+import { Plus, FileText, Pencil, Trash2, LogOut, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Quotation } from './types';
+import { useQuotations } from './hooks/useQuotations';
+import { useAuth } from './hooks/useAuth';
+import { useAdmin } from './hooks/useAdmin';
 
-interface QuotationListProps {
-  quotations: Quotation[];
-  onDelete: (id: string) => void;
-}
+export default function QuotationList() {
+  const { quotations, loading, deleteQuotation } = useQuotations();
+  const { signOut } = useAuth();
+  const { isAdmin } = useAdmin();
 
-export default function QuotationList({ quotations, onDelete }: QuotationListProps) {
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja eliminar esta pré-cotação?')) {
+      try {
+        await deleteQuotation(id);
+      } catch (error) {
+        console.error('Error deleting quotation:', error);
+        alert('Erro ao eliminar a pré-cotação');
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Lomartex, Lda</h1>
-          <h2 className="text-xl text-gray-600">Gestão de Pré-Cotações</h2>
+        <div className="flex justify-between items-center mb-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900">Lomartex, Lda</h1>
+            <h2 className="text-xl text-gray-600">Gestão de Pré-Cotações</h2>
+          </div>
+          <div className="flex items-center gap-4">
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+              >
+                <Users size={16} />
+                Manage Users
+              </Link>
+            )}
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <LogOut size={16} />
+              Sair
+            </button>
+          </div>
         </div>
 
         <div className="mb-6 flex justify-end">
@@ -91,7 +131,7 @@ export default function QuotationList({ quotations, onDelete }: QuotationListPro
                         <Pencil size={16} />
                       </Link>
                       <button
-                        onClick={() => onDelete(quotation.id)}
+                        onClick={() => handleDelete(quotation.id)}
                         className="text-red-600 hover:text-red-900"
                         title="Eliminar"
                       >
@@ -101,6 +141,13 @@ export default function QuotationList({ quotations, onDelete }: QuotationListPro
                   </td>
                 </tr>
               ))}
+              {quotations.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                    Nenhuma pré-cotação encontrada
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
