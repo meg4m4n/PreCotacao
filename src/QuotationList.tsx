@@ -1,14 +1,10 @@
 import React from 'react';
-import { Plus, FileText, Pencil, Trash2, LogOut, Users } from 'lucide-react';
+import { Plus, FileText, Pencil, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuotations } from './hooks/useQuotations';
-import { useAuth } from './hooks/useAuth';
-import { useAdmin } from './hooks/useAdmin';
 
 export default function QuotationList() {
   const { quotations, loading, deleteQuotation } = useQuotations();
-  const { signOut } = useAuth();
-  const { isAdmin } = useAdmin();
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja eliminar esta pré-cotação?')) {
@@ -32,29 +28,9 @@ export default function QuotationList() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900">Lomartex, Lda</h1>
-            <h2 className="text-xl text-gray-600">Gestão de Pré-Cotações</h2>
-          </div>
-          <div className="flex items-center gap-4">
-            {isAdmin && (
-              <Link
-                to="/admin"
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-              >
-                <Users size={16} />
-                Manage Users
-              </Link>
-            )}
-            <button
-              onClick={signOut}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <LogOut size={16} />
-              Sair
-            </button>
-          </div>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Lomartex, Lda</h1>
+          <h2 className="text-xl text-gray-600">Gestão de Pré-Cotações</h2>
         </div>
 
         <div className="mb-6 flex justify-end">

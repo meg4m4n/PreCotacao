@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 export function AuthForm() {
-  const [email, setEmail] = useState('ruiguimaraes');
+  const [email, setEmail] = useState('ruiguimaraes@lomartex.pt');
   const [password, setPassword] = useState('3311225');
   const [error, setError] = useState<string | null>(null);
   const { signIn } = useAuth();
@@ -14,7 +14,7 @@ export function AuthForm() {
     try {
       await signIn(email, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError('Invalid email or password. Please try again.');
     }
   };
 
@@ -66,7 +66,7 @@ export function AuthForm() {
             </div>
 
             {error && (
-              <div className="text-red-600 text-sm">
+              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
                 {error}
               </div>
             )}

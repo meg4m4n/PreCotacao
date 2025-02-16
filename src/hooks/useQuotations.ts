@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Quotation } from '../types';
-import { useAuth } from './useAuth';
 
 export function useQuotations() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   useEffect(() => {
-    if (!user) return;
-
     const fetchQuotations = async () => {
       const { data: quotationsData, error: quotationsError } = await supabase
         .from('quotations')
@@ -71,7 +67,7 @@ export function useQuotations() {
     return () => {
       quotationsSubscription.unsubscribe();
     };
-  }, [user]);
+  }, []);
 
   const deleteQuotation = async (id: string) => {
     const { error } = await supabase
@@ -106,7 +102,6 @@ export function useQuotations() {
       article_image: quotation.articleImage,
       quantities: quotation.quantities,
       margins: quotation.margins,
-      user_id: user?.id,
     };
 
     const { data: savedQuotation, error: quotationError } = await supabase
