@@ -6,7 +6,7 @@ export const generatePDF = (data: Quotation) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
 
-  // Header
+  // Header with code
   doc.setFontSize(20);
   doc.text('Lomartex, Lda', pageWidth / 2, 20, { align: 'center' });
   doc.setFontSize(16);
@@ -14,41 +14,47 @@ export const generatePDF = (data: Quotation) => {
   doc.setFontSize(14);
   doc.text(`Código: ${data.code}`, pageWidth / 2, 40, { align: 'center' });
 
-  // Article Image
-  if (data.articleImage) {
-    doc.addImage(data.articleImage, 'JPEG', 14, 50, 40, 40);
-  }
-
   // Client Information
-  const startY = data.articleImage ? 100 : 55;
+  let yOffset = 50;
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('Informação do Cliente', 14, startY);
+  doc.text('Informação do Cliente', 14, yOffset);
   
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  const labels = ['Nome:', 'Marca:', 'Email:', 'Nossa Ref:', 'Ref Cliente:', 'Tamanho Amostra:', 'Descrição:'];
-  const values = [
-    data.client.name,
-    data.client.brand,
-    data.client.email,
-    data.client.ourRef,
-    data.client.clientRef,
-    data.client.sampleSize,
-    data.client.description
+  const clientData = [
+    [
+      { content: 'Nome:', styles: { fontStyle: 'bold' } },
+      { content: data.client.name }
+    ],
+    [
+      { content: 'Marca:', styles: { fontStyle: 'bold' } },
+      { content: data.client.brand }
+    ],
+    [
+      { content: 'Nossa Ref:', styles: { fontStyle: 'bold' } },
+      { content: data.client.ourRef }
+    ],
+    [
+      { content: 'Ref Cliente:', styles: { fontStyle: 'bold' } },
+      { content: data.client.clientRef }
+    ]
   ];
 
-  let yOffset = startY + 10;
-  labels.forEach((label, index) => {
-    doc.setFont('helvetica', 'bold');
-    doc.text(label, 14, yOffset);
-    doc.setFont('helvetica', 'normal');
-    doc.text(values[index], 45, yOffset);
-    yOffset += 7;
+  autoTable(doc, {
+    startY: yOffset + 5,
+    body: clientData,
+    theme: 'plain',
+    styles: {
+      fontSize: 10,
+      cellPadding: 2
+    },
+    columnStyles: {
+      0: { cellWidth: 30 },
+      1: { cellWidth: 'auto' }
+    }
   });
 
-  // Materials List
-  yOffset += 10;
+  // Materials List (simplified version)
+  yOffset = (doc as any).lastAutoTable.finalY + 10;
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text('Lista de Materiais', 14, yOffset);
@@ -66,49 +72,30 @@ export const generatePDF = (data: Quotation) => {
     },
     styles: {
       fontSize: 10,
-      cellPadding:  Continuing the pdfGenerator.ts file content from where it left off:
+      cellPadding: 3
     }
-  }
-  )
-}
-
-```
-      cellPadding: 5,
-    },
   });
 
-  // Calculate totals and pricing
-  const calculateMOQCostPerUnit = (quantity: number) => {
-    return data.developments
-      .filter(dev => dev.isFromMOQ && dev.includeInSubtotal && dev.moqQuantity && dev.moqQuantity > 0)
-      .reduce((sum, dev) => sum + (dev.cost * dev.moqQuantity) / quantity, 0);
-  };
+  // Pricing Table
+  yOffset = (doc as any).lastAutoTable.finalY + 10;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Preços por Quantidade', 14, yOffset);
 
-  const calculateBasePrice = (quantity: number) => {
-    const materialsTotal = data.components.reduce(
+  const pricingData = data.quantities.map((qty, i) => {
+    const basePrice = data.components.reduce(
       (sum, comp) => sum + comp.unitPrice * comp.consumption,
       0
     );
-    return materialsTotal + calculateMOQCostPerUnit(quantity);
-  };
-
-  // Pricing Table
-  const pricingY = (doc as any).lastAutoTable.finalY + 10;
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Preços por Quantidade', 14, pricingY);
-
-  const pricingData = data.quantities.map((qty, i) => {
-    const basePrice = calculateBasePrice(qty);
     const finalPrice = (basePrice * (1 + data.margins[i] / 100));
     return [
       qty.toString(),
-      `€${(finalPrice / qty).toFixed(2)}`
+      `${(finalPrice / qty).toFixed(2)} €`
     ];
   });
 
   autoTable(doc, {
-    startY: pricingY + 5,
+    startY: yOffset + 5,
     head: [['Quantidade', 'Preço por Unidade']],
     body: pricingData,
     theme: 'striped',
@@ -118,45 +105,71 @@ export const generatePDF = (data: Quotation) => {
     },
     styles: {
       fontSize: 10,
-      cellPadding: 5,
-    },
+      cellPadding: 3
+    }
   });
 
-  // Extra Costs
-  const selectedDevelopments = data.developments.filter(dev => dev.showInPdf);
+  // Extra Costs with MOQ calculations
+  const moqDevelopments = data.developments.filter(dev => dev.showInPdf && dev.moqQuantity);
   
-  if (selectedDevelopments.length > 0) {
-    const developmentY = (doc as any).lastAutoTable.finalY + 10;
+  if (moqDevelopments.length > 0) {
+    yOffset = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Custos Extra', 14, developmentY);
+    doc.text('Custos Extra (MOQ)', 14, yOffset);
 
-    const developmentData = selectedDevelopments.map(dev => [
-      dev.description,
-      `€${dev.cost.toFixed(2)}`
-    ]);
+    const moqData = moqDevelopments.flatMap(dev => {
+      return data.margins.map((margin, index) => {
+        const totalCost = dev.cost * (dev.moqQuantity || 0);
+        const withMargin = totalCost * (1 + margin / 100);
+        return [
+          dev.description,
+          dev.moqQuantity?.toString() || '0',
+          `${dev.cost.toFixed(2)} €`,
+          `${margin}%`,
+          `${withMargin.toFixed(2)} €`
+        ];
+      });
+    });
 
     autoTable(doc, {
-      startY: developmentY + 5,
-      head: [['Descrição', 'Custo']],
-      body: developmentData,
+      startY: yOffset + 5,
+      head: [['Descrição', 'MOQ', 'Custo (€)', 'Margem', 'Total c/ Margem']],
+      body: moqData,
       theme: 'striped',
       headStyles: { 
         fillColor: [41, 128, 185],
         fontStyle: 'bold',
       },
       styles: {
-        fontSize: 10,
-        cellPadding: 5,
+        fontSize: 9,
+        cellPadding: 3
       },
+      columnStyles: {
+        0: { cellWidth: 'auto' },
+        1: { cellWidth: 25, halign: 'right' },
+        2: { cellWidth: 30, halign: 'right' },
+        3: { cellWidth: 25, halign: 'right' },
+        4: { cellWidth: 35, halign: 'right' }
+      }
     });
   }
 
   // Footer
-  const today = new Date(data.date).toLocaleDateString('pt-PT');
+  const footerText = [
+    'Please note that this offer is based on our TERMS AND CONDITIONS.',
+    'Prices exclude VAT Tax',
+    'Prices Ex Works',
+    'More info, please contact your account manager or info@lomartex.pt'
+  ];
+
+  const footerY = doc.internal.pageSize.height - 25;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Gerado em ${today}`, 14, doc.internal.pageSize.height - 10);
+  
+  footerText.forEach((text, index) => {
+    doc.text(text, 14, footerY + (index * 4));
+  });
 
   // Save the PDF
   doc.save(`Lomartex-Pre-Cotacao-${data.code}.pdf`);

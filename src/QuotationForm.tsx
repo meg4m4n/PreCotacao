@@ -361,7 +361,6 @@ export default function QuotationForm({ quotation, onSave, readOnly = false }: Q
                   <th className="px-4 py-2 text-center">Tem MOQ</th>
                   <th className="px-4 py-2 text-right">Total (€)</th>
                   {!readOnly && <th className="px-4 py-2"></th>}
-                  }
                 </tr>
               </thead>
               <tbody>
@@ -439,7 +438,6 @@ export default function QuotationForm({ quotation, onSave, readOnly = false }: Q
                   <td colSpan={5} className="px-4 py-2 text-right">Subtotal:</td>
                   <td className="px-4 py-2 text-right">{calculateSubtotal(quantities[0]).toFixed(2)}</td>
                   {!readOnly && <td></td>}
-                  }
                 </tr>
               </tbody>
             </table>
@@ -471,7 +469,6 @@ export default function QuotationForm({ quotation, onSave, readOnly = false }: Q
                   <th className="px-4 py-2 text-center">Incluir no Subtotal</th>
                   <th className="px-4 py-2 text-center">Mostrar no PDF</th>
                   {!readOnly && <th className="px-4 py-2"></th>}
-                  }
                 </tr>
               </thead>
               <tbody>
