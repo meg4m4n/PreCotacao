@@ -13,7 +13,6 @@ export interface Database {
         Row: {
           id: string
           code: string
-          date: string
           client_name: string
           client_brand: string | null
           client_email: string | null
@@ -22,16 +21,16 @@ export interface Database {
           client_description: string | null
           client_sample_size: string | null
           article_image: string | null
+          components: Json
+          developments: Json
           quantities: number[]
           margins: number[]
-          user_id: string
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           code: string
-          date?: string
           client_name: string
           client_brand?: string | null
           client_email?: string | null
@@ -40,16 +39,16 @@ export interface Database {
           client_description?: string | null
           client_sample_size?: string | null
           article_image?: string | null
+          components?: Json
+          developments?: Json
           quantities?: number[]
           margins?: number[]
-          user_id: string
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           code?: string
-          date?: string
           client_name?: string
           client_brand?: string | null
           client_email?: string | null
@@ -58,85 +57,30 @@ export interface Database {
           client_description?: string | null
           client_sample_size?: string | null
           article_image?: string | null
+          components?: Json
+          developments?: Json
           quantities?: number[]
           margins?: number[]
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      admin_users: {
+        Row: {
+          user_id: string
+          is_admin: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          is_admin?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
           user_id?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      components: {
-        Row: {
-          id: string
-          quotation_id: string
-          description: string
-          supplier: string | null
-          unit_price: number
-          consumption: number
-          has_moq: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          quotation_id: string
-          description: string
-          supplier?: string | null
-          unit_price?: number
-          consumption?: number
-          has_moq?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          quotation_id?: string
-          description?: string
-          supplier?: string | null
-          unit_price?: number
-          consumption?: number
-          has_moq?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      developments: {
-        Row: {
-          id: string
-          quotation_id: string
-          description: string
-          supplier: string | null
-          cost: number
-          is_from_moq: boolean
-          moq_quantity: number | null
-          include_in_subtotal: boolean
-          show_in_pdf: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          quotation_id: string
-          description: string
-          supplier?: string | null
-          cost?: number
-          is_from_moq?: boolean
-          moq_quantity?: number | null
-          include_in_subtotal?: boolean
-          show_in_pdf?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          quotation_id?: string
-          description?: string
-          supplier?: string | null
-          cost?: number
-          is_from_moq?: boolean
-          moq_quantity?: number | null
-          include_in_subtotal?: boolean
-          show_in_pdf?: boolean
+          is_admin?: boolean
           created_at?: string
           updated_at?: string
         }

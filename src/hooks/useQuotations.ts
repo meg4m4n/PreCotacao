@@ -10,11 +10,7 @@ export function useQuotations() {
     const fetchQuotations = async () => {
       const { data: quotationsData, error: quotationsError } = await supabase
         .from('quotations')
-        .select(`
-          *,
-          components (*),
-          developments (*)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (quotationsError) {
@@ -36,10 +32,11 @@ export function useQuotations() {
           sampleSize: q.client_sample_size,
         },
         articleImage: q.article_image,
-        components: q.components,
-        developments: q.developments,
+        components: q.components || [],
+        developments: q.developments || [],
         quantities: q.quantities,
         margins: q.margins,
+        language: q.language || 'pt',
       }));
 
       setQuotations(formattedQuotations);
@@ -81,13 +78,21 @@ export function useQuotations() {
     }
   };
 
+  const generateQuotationCode = () => {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const sequence = (quotations.length + 1).toString().padStart(3, '0');
+    return `PC${year}${month}${sequence}`;
+  };
+
   const saveQuotation = async (
     quotation: Omit<Quotation, 'id' | 'code' | 'date'>,
     existingId?: string
   ) => {
     const code = existingId 
       ? undefined 
-      : generateQuotationCode(quotations.length + 1);
+      : generateQuotationCode();
 
     const quotationData = {
       ...(existingId && { id: existingId }),
@@ -100,8 +105,11 @@ export function useQuotations() {
       client_description: quotation.client.description,
       client_sample_size: quotation.client.sampleSize,
       article_image: quotation.articleImage,
+      components: quotation.components,
+      developments: quotation.developments,
       quantities: quotation.quantities,
       margins: quotation.margins,
+      language: quotation.language,
     };
 
     const { data: savedQuotation, error: quotationError } = await supabase
@@ -115,58 +123,7 @@ export function useQuotations() {
       throw quotationError;
     }
 
-    // Save components
-    if (quotation.components.length > 0) {
-      const componentsData = quotation.components.map(comp => ({
-        quotation_id: savedQuotation.id,
-        description: comp.description,
-        supplier: comp.supplier,
-        unit_price: comp.unitPrice,
-        consumption: comp.consumption,
-        has_moq: comp.hasMOQ,
-      }));
-
-      const { error: componentsError } = await supabase
-        .from('components')
-        .upsert(componentsData);
-
-      if (componentsError) {
-        console.error('Error saving components:', componentsError);
-        throw componentsError;
-      }
-    }
-
-    // Save developments
-    if (quotation.developments.length > 0) {
-      const developmentsData = quotation.developments.map(dev => ({
-        quotation_id: savedQuotation.id,
-        description: dev.description,
-        supplier: dev.supplier,
-        cost: dev.cost,
-        is_from_moq: dev.isFromMOQ,
-        moq_quantity: dev.moqQuantity,
-        include_in_subtotal: dev.includeInSubtotal,
-        show_in_pdf: dev.showInPdf,
-      }));
-
-      const { error: developmentsError } = await supabase
-        .from('developments')
-        .upsert(developmentsData);
-
-      if (developmentsError) {
-        console.error('Error saving developments:', developmentsError);
-        throw developmentsError;
-      }
-    }
-
     return savedQuotation.id;
-  };
-
-  const generateQuotationCode = (sequence: number) => {
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    return `PC${year}${month}${sequence.toString().padStart(3, '0')}`;
   };
 
   return {

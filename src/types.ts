@@ -40,6 +40,7 @@ export interface Quotation {
   developments: Development[];
   quantities: number[];
   margins: number[];
+  language?: 'pt' | 'en' | 'fr' | 'es';
 }
 
 export interface PricingData {
@@ -49,4 +50,28 @@ export interface PricingData {
   developments: Development[];
   quantities: number[];
   margins: number[];
+  language?: 'pt' | 'en' | 'fr' | 'es';
+}
+
+export type Language = 'pt' | 'en' | 'fr' | 'es';
+
+export interface Translations {
+  title: string;
+  preQuotation: string;
+  code: string;
+  clientInfo: string;
+  name: string;
+  brand: string;
+  ourRef: string;
+  clientRef: string;
+  materialsList: string;
+  description: string;
+  pricesByQuantity: string;
+  quantity: string;
+  pricePerUnit: string;
+  extraCosts: string;
+  cost: string;
+  margin: string;
+  totalWithMargin: string;
+  footer: string[];
 }

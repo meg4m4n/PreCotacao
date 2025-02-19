@@ -1,40 +1,62 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Quotation } from './types';
+import { translations } from './translations';
 
 export const generatePDF = (data: Quotation) => {
+  const lang = data.language || 'pt';
+  const t = translations[lang];
+  
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  const margin = 14;
+
+  // Add logo if available
+  // const logoHeight = 20;
+  // doc.addImage('path_to_logo', 'PNG', margin, margin, 40, logoHeight);
 
   // Header with code
   doc.setFontSize(20);
-  doc.text('Lomartex, Lda', pageWidth / 2, 20, { align: 'center' });
+  doc.text(t.title, pageWidth / 2, 20, { align: 'center' });
   doc.setFontSize(16);
-  doc.text('Pré-Cotação', pageWidth / 2, 30, { align: 'center' });
+  doc.text(t.preQuotation, pageWidth / 2, 30, { align: 'center' });
   doc.setFontSize(14);
-  doc.text(`Código: ${data.code}`, pageWidth / 2, 40, { align: 'center' });
+  doc.text(`${t.code}: ${data.code}`, pageWidth / 2, 40, { align: 'center' });
+
+  // Add article image if available
+  let yOffset = 50;
+  if (data.articleImage) {
+    try {
+      const imgWidth = 100;
+      const imgHeight = 100;
+      doc.addImage(data.articleImage, 'JPEG', (pageWidth - imgWidth) / 2, yOffset, imgWidth, imgHeight);
+      yOffset += imgHeight + 10;
+    } catch (error) {
+      console.error('Error adding image to PDF:', error);
+    }
+  }
 
   // Client Information
-  let yOffset = 50;
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('Informação do Cliente', 14, yOffset);
+  doc.text(t.clientInfo, margin, yOffset);
   
   const clientData = [
     [
-      { content: 'Nome:', styles: { fontStyle: 'bold' } },
+      { content: `${t.name}:`, styles: { fontStyle: 'bold' } },
       { content: data.client.name }
     ],
     [
-      { content: 'Marca:', styles: { fontStyle: 'bold' } },
+      { content: `${t.brand}:`, styles: { fontStyle: 'bold' } },
       { content: data.client.brand }
     ],
     [
-      { content: 'Nossa Ref:', styles: { fontStyle: 'bold' } },
+      { content: `${t.ourRef}:`, styles: { fontStyle: 'bold' } },
       { content: data.client.ourRef }
     ],
     [
-      { content: 'Ref Cliente:', styles: { fontStyle: 'bold' } },
+      { content: `${t.clientRef}:`, styles: { fontStyle: 'bold' } },
       { content: data.client.clientRef }
     ]
   ];
@@ -53,17 +75,23 @@ export const generatePDF = (data: Quotation) => {
     }
   });
 
-  // Materials List (simplified version)
+  // Materials List
   yOffset = (doc as any).lastAutoTable.finalY + 10;
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('Lista de Materiais', 14, yOffset);
+  doc.text(t.materialsList, margin, yOffset);
 
-  const materialsData = data.components.map(comp => [comp.description]);
+  const materialsData = data.components.map(comp => [
+    comp.description,
+    comp.supplier,
+    `${comp.unitPrice.toFixed(2)} €`,
+    comp.consumption.toString(),
+    `${(comp.unitPrice * comp.consumption).toFixed(2)} €`
+  ]);
 
   autoTable(doc, {
     startY: yOffset + 5,
-    head: [['Descrição']],
+    head: [[t.description, 'Supplier', 'Unit Price', 'Consumption', 'Total']],
     body: materialsData,
     theme: 'striped',
     headStyles: { 
@@ -71,7 +99,7 @@ export const generatePDF = (data: Quotation) => {
       fontStyle: 'bold',
     },
     styles: {
-      fontSize: 10,
+      fontSize: 9,
       cellPadding: 3
     }
   });
@@ -80,7 +108,7 @@ export const generatePDF = (data: Quotation) => {
   yOffset = (doc as any).lastAutoTable.finalY + 10;
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('Preços por Quantidade', 14, yOffset);
+  doc.text(t.pricesByQuantity, margin, yOffset);
 
   const pricingData = data.quantities.map((qty, i) => {
     const basePrice = data.components.reduce(
@@ -90,13 +118,15 @@ export const generatePDF = (data: Quotation) => {
     const finalPrice = (basePrice * (1 + data.margins[i] / 100));
     return [
       qty.toString(),
-      `${(finalPrice / qty).toFixed(2)} €`
+      `${(finalPrice / qty).toFixed(2)} €`,
+      `${data.margins[i]}%`,
+      `${finalPrice.toFixed(2)} €`
     ];
   });
 
   autoTable(doc, {
     startY: yOffset + 5,
-    head: [['Quantidade', 'Preço por Unidade']],
+    head: [[t.quantity, t.pricePerUnit, t.margin, t.totalWithMargin]],
     body: pricingData,
     theme: 'striped',
     headStyles: { 
@@ -104,7 +134,7 @@ export const generatePDF = (data: Quotation) => {
       fontStyle: 'bold',
     },
     styles: {
-      fontSize: 10,
+      fontSize: 9,
       cellPadding: 3
     }
   });
@@ -116,7 +146,7 @@ export const generatePDF = (data: Quotation) => {
     yOffset = (doc as any).lastAutoTable.finalY + 10;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Custos Extra (MOQ)', 14, yOffset);
+    doc.text(t.extraCosts, margin, yOffset);
 
     const moqData = moqDevelopments.flatMap(dev => {
       return data.margins.map((margin, index) => {
@@ -134,7 +164,7 @@ export const generatePDF = (data: Quotation) => {
 
     autoTable(doc, {
       startY: yOffset + 5,
-      head: [['Descrição', 'MOQ', 'Custo (€)', 'Margem', 'Total c/ Margem']],
+      head: [[t.description, 'MOQ', t.cost, t.margin, t.totalWithMargin]],
       body: moqData,
       theme: 'striped',
       headStyles: { 
@@ -156,21 +186,14 @@ export const generatePDF = (data: Quotation) => {
   }
 
   // Footer
-  const footerText = [
-    'Please note that this offer is based on our TERMS AND CONDITIONS.',
-    'Prices exclude VAT Tax',
-    'Prices Ex Works',
-    'More info, please contact your account manager or info@lomartex.pt'
-  ];
-
-  const footerY = doc.internal.pageSize.height - 25;
+  const footerY = pageHeight - 25;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   
-  footerText.forEach((text, index) => {
-    doc.text(text, 14, footerY + (index * 4));
+  t.footer.forEach((text, index) => {
+    doc.text(text, margin, footerY + (index * 4));
   });
 
   // Save the PDF
-  doc.save(`Lomartex-Pre-Cotacao-${data.code}.pdf`);
+  doc.save(`Lomartex-${t.preQuotation}-${data.code}.pdf`);
 };

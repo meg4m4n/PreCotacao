@@ -1,18 +1,21 @@
 import React, { useState, useRef } from 'react';
 import { FileDown, Plus, Trash2, Upload, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { Client, Component, Development, Quotation } from './types';
+import { Client, Component, Development, Quotation, Language } from './types';
 import { generatePDF } from './pdfGenerator';
+import { useQuotations } from './hooks/useQuotations';
 
 interface QuotationFormProps {
   quotation?: Quotation;
-  onSave?: (data: Omit<Quotation, 'id' | 'code' | 'date'>) => void;
   readOnly?: boolean;
 }
 
-export default function QuotationForm({ quotation, onSave, readOnly = false }: QuotationFormProps) {
+export default function QuotationForm({ quotation, readOnly = false }: QuotationFormProps) {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const { saveQuotation } = useQuotations();
+  
   const [client, setClient] = useState<Client>(quotation?.client || {
     name: '',
     brand: '',
@@ -30,6 +33,7 @@ export default function QuotationForm({ quotation, onSave, readOnly = false }: Q
   const [developments, setDevelopments] = useState<Development[]>(quotation?.developments || []);
   const [quantities, setQuantities] = useState<number[]>(quotation?.quantities || [100, 250, 500]);
   const [margins, setMargins] = useState<number[]>(quotation?.margins || [30, 25, 20]);
+  const [language, setLanguage] = useState<Language>(quotation?.language || 'pt');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -184,34 +188,60 @@ export default function QuotationForm({ quotation, onSave, readOnly = false }: Q
     return quantityTotal * (1 + margin / 100);
   };
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave({
+  const handleSave = async () => {
+    try {
+      const quotationData = {
         client,
         articleImage,
         components,
         developments,
         quantities,
         margins,
-      });
+        language
+      };
+
+      await saveQuotation(quotationData, id);
       navigate('/');
+    } catch (error) {
+      console.error('Error saving quotation:', error);
+      alert('Error saving quotation. Please try again.');
     }
   };
 
   const handleExportPDF = () => {
     const data = quotation || {
+      id: id || 'TEMP',
+      code: quotation?.code || 'TEMP',
+      date: new Date().toISOString(),
       client,
       articleImage,
       components,
       developments,
       quantities,
       margins,
-      code: 'TEMP',
-      date: new Date().toISOString(),
-      id: 'TEMP'
+      language
     };
     generatePDF(data);
   };
+
+  const renderLanguageSelector = () => (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        PDF Language
+      </label>
+      <select
+        value={language}
+        onChange={(e) => setLanguage(e.target.value as Language)}
+        className="border rounded p-2"
+        disabled={readOnly}
+      >
+        <option value="pt">Português</option>
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+      </select>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -616,6 +646,11 @@ export default function QuotationForm({ quotation, onSave, readOnly = false }: Q
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Language Selector */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          {renderLanguageSelector()}
         </div>
 
         {/* Actions */}
