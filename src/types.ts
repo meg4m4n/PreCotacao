@@ -1,11 +1,14 @@
 export interface Client {
+  id: string;
   name: string;
-  brand: string;
-  email: string;
-  ourRef: string;
-  clientRef: string;
-  description: string;
-  sampleSize: string;
+  brand: string | null;
+  email: string | null;
+  ourRef: string | null;
+  clientRef: string | null;
+  description: string | null;
+  sampleSize: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Development {
@@ -33,6 +36,7 @@ export interface Component {
 export interface Quotation {
   id: string;
   code: string;
+  ref: string;
   date: string;
   client: Client;
   articleImage: string;
@@ -40,17 +44,9 @@ export interface Quotation {
   developments: Development[];
   quantities: number[];
   margins: number[];
-  language?: 'pt' | 'en' | 'fr' | 'es';
-}
-
-export interface PricingData {
-  client: Client;
-  articleImage: string;
-  components: Component[];
-  developments: Development[];
-  quantities: number[];
-  margins: number[];
-  language?: 'pt' | 'en' | 'fr' | 'es';
+  language?: Language;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type Language = 'pt' | 'en' | 'fr' | 'es';

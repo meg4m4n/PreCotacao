@@ -10,7 +10,10 @@ export function useQuotations() {
     const fetchQuotations = async () => {
       const { data: quotationsData, error: quotationsError } = await supabase
         .from('quotations')
-        .select('*')
+        .select(`
+          *,
+          client:clients (*)
+        `)
         .order('created_at', { ascending: false });
 
       if (quotationsError) {
@@ -21,15 +24,19 @@ export function useQuotations() {
       const formattedQuotations: Quotation[] = quotationsData.map(q => ({
         id: q.id,
         code: q.code,
+        ref: q.ref,
         date: q.created_at,
         client: {
-          name: q.client_name,
-          brand: q.client_brand,
-          email: q.client_email,
-          ourRef: q.client_our_ref,
-          clientRef: q.client_ref,
-          description: q.client_description,
-          sampleSize: q.client_sample_size,
+          id: q.client.id,
+          name: q.client.name,
+          brand: q.client.brand,
+          email: q.client.email,
+          ourRef: q.client.our_ref,
+          clientRef: q.client.client_ref,
+          description: q.client.description,
+          sampleSize: q.client.sample_size,
+          createdAt: q.client.created_at,
+          updatedAt: q.client.updated_at,
         },
         articleImage: q.article_image,
         components: q.components || [],
@@ -37,6 +44,8 @@ export function useQuotations() {
         quantities: q.quantities,
         margins: q.margins,
         language: q.language || 'pt',
+        createdAt: q.created_at,
+        updatedAt: q.updated_at,
       }));
 
       setQuotations(formattedQuotations);
@@ -86,24 +95,27 @@ export function useQuotations() {
     return `PC${year}${month}${sequence}`;
   };
 
+  const generateQuotationRef = () => {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const sequence = (quotations.length + 1).toString().padStart(3, '0');
+    return `${year}${month}${day}${sequence}`;
+  };
+
   const saveQuotation = async (
-    quotation: Omit<Quotation, 'id' | 'code' | 'date'>,
+    quotation: Omit<Quotation, 'id' | 'code' | 'ref' | 'date' | 'createdAt' | 'updatedAt'>,
     existingId?: string
   ) => {
-    const code = existingId 
-      ? undefined 
-      : generateQuotationCode();
+    const code = existingId ? undefined : generateQuotationCode();
+    const ref = existingId ? undefined : generateQuotationRef();
 
     const quotationData = {
       ...(existingId && { id: existingId }),
       ...(code && { code }),
-      client_name: quotation.client.name,
-      client_brand: quotation.client.brand,
-      client_email: quotation.client.email,
-      client_our_ref: quotation.client.ourRef,
-      client_ref: quotation.client.clientRef,
-      client_description: quotation.client.description,
-      client_sample_size: quotation.client.sampleSize,
+      ...(ref && { ref }),
+      client_id: quotation.client.id,
       article_image: quotation.articleImage,
       components: quotation.components,
       developments: quotation.developments,
